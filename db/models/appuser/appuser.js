@@ -28,9 +28,14 @@ AppUser.DEV_STAGE = 'dev';
 AppUser.QA_STAGE = 'qa';
 AppUser.PROD_STAGE = 'prod';
 
-AppUser.APPUSER_USERNAME_MIN_LENGTH = 4;
+AppUser.APPUSER_USERNAME_MIN_LENGTH = 6;
 
 AppUser.APPUSER_USERNAME_MAX_LENGTH = 20;
+
+// Set a minimum password length for unencrypted password
+AppUser.MIN_PASSWORD_LENGTH = 8;
+
+AppUser.MAX_PASSWORD_LENGTH = 128;
 
 AppUser.APPUSER_TABLE_NAME = 'appuser';
 
