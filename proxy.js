@@ -1,28 +1,10 @@
-/* var proxy = require('express-http-proxy');
-var express = require('express');
-var app = express();
-var expressWs = require('express-ws')(app);
 
-const port = 8080;
+/*
+Normally on a linux machine, apache2 or some other software would be used as proxy.
 
-const ngPort = 4200;
-const apiPort = 3000;
-
-app.use('/api/', (req, res, next)=> {
-    //console.log(req);
-    console.log('yo');
-    return next();
-}, proxy(`http://localhost:${apiPort}`)); 
-    
-//app.use('/signup', proxy(`http://localhost:${ngPort}/`));
-
-//app.ws('/', proxy(`ws://localhost:${ngPort}/`))
-
-
-app.listen(port, () => {
-    console.log(`Server running on port ${port}.`);
-});
- */
+http-proxy-middleware is used to restrict access to private pages if the user is not authenticated.
+If the user is authenticated, then they will be redirect to the app homepage when they try to access certain public pages
+*/
 
 const express = require('express');
 
@@ -31,10 +13,15 @@ const port = 8080;
 
 
 const app = express();
- 
-app.use(createProxyMiddleware({ target:'http://localhost:4200/', router: {
-    '/api': 'http://localhost:3000/'
 
+const apiHost = "http://localhost:3000/"
+
+app.use(createProxyMiddleware({ target:'http://localhost:4200/', router: {
+    '/api': apiHost,
+    '/logout': apiHost,
+    '/todo': apiHost,
+    '/login': apiHost,
+    '/signup': apiHost,
 }, changeOrigin: true }));
 
 
