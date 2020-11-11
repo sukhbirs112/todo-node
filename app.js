@@ -102,6 +102,11 @@ app.get('/api/csrf', ajaxOnlyMiddleWare, csrfProtection, (req, res) => {
 });
 
 
+app.get('/api/user', ajaxOnlyMiddleWare, csrfProtection, authRestrictMiddleWare, (req, res) => {
+	res.status(200).json({ success: true, username: req.session.user.username, msg: 'Username' });
+ });
+
+
 // LOGIN USER 
 app.post('/api/login', ajaxOnlyMiddleWare, csrfProtection, (req, res) => {
 
