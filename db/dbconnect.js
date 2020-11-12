@@ -17,4 +17,8 @@ const { AppUser } = require('./models/appuser/appuser')
 AppUser.pool = pool
 module.exports.AppUser = AppUser;
 
+const { TodoItem } = require('./models/todoitem/todoitem');
+TodoItem.pool = pool;
+module.exports.TodoItem = TodoItem;
+
 

@@ -47,7 +47,7 @@ const CREATE_TABLE_APPUSER = function() {
 	return `CREATE TABLE ${AppUser.APPUSER_TABLE_NAME} (
 		id SERIAL PRIMARY KEY,
 
-		username varchar(20) UNIQUE NOT NULL 
+		username varchar(${AppUser.APPUSER_USERNAME_MAX_LENGTH }) UNIQUE NOT NULL 
 		CHECK(LENGTH(username) >= ${AppUser.APPUSER_USERNAME_MIN_LENGTH} AND LENGTH(username) <= ${AppUser.APPUSER_USERNAME_MAX_LENGTH}),
 
 		password varchar(64) NOT NULL,
@@ -56,7 +56,7 @@ const CREATE_TABLE_APPUSER = function() {
 };
 
 const DROP_TABLE_APPUSER = function() { 
-	return `DROP TABLE ${AppUser.APPUSER_TABLE_NAME};`
+	return `DROP TABLE ${AppUser.APPUSER_TABLE_NAME};`;
 };
 
 
