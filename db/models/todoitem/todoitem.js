@@ -49,7 +49,7 @@ const CREATE_TABLE_TODOITEM = function () {
 		CHECK(LENGTH(title) >= ${TodoItem.TODOITEM_TITLE_MIN_LENGTH} AND LENGTH(title) <= ${TodoItem.TODOITEM_TITLE_MAX_LENGTH}),
 
 		description varchar(${TodoItem.TODOITEM_DESCRIPTION_MAX_LENGTH}) 
-		CHECK(LENGTH(title) >= ${TodoItem.TODOITEM_DESCRIPTION_MIN_LENGTH} AND LENGTH(title) <= ${TodoItem.TODOITEM_DESCRIPTION_MAX_LENGTH}),
+		CHECK(LENGTH(description) >= ${TodoItem.TODOITEM_DESCRIPTION_MIN_LENGTH} AND LENGTH(description) <= ${TodoItem.TODOITEM_DESCRIPTION_MAX_LENGTH}),
 
 		complete boolean DEFAULT false,
 
@@ -63,12 +63,13 @@ const DROP_TABLE_TODOITEM = function () {
 
 // Add TodoItem sql
 const INSERT_INTO_TODOITEM = function () {
-	return `INSERT INTO ${TodoItem.TODOITEM_TABLE_NAME} (appuserid, title, description, complete) VALUES ($1, $2, $3, $4);`;
+	return `INSERT INTO ${TodoItem.TODOITEM_TABLE_NAME} (appuserid, title, description, complete) VALUES ($1, $2, $3, $4) 
+		RETURNING id, datecreated;`;
 };
 
 // Update TodoItem sql
-const UPDATE_TODOITEM_WHERE_ID_EQUALS = function () {
-	return `UPDATE ${TodoItem.TODOITEM_TABLE_NAME} SET title = $1, description = $2, complete = $3 WHERE id = $4;`;
+const UPDATE_TODOITEM_WHERE_ID_EQUALS_AND_APPUSERID_EQUALS = function () {
+	return `UPDATE ${TodoItem.TODOITEM_TABLE_NAME} SET title = $1, description = $2, complete = $3 WHERE id = $4 AND appuserid = $5;`;
 }
 
 const SELECT_ALL_FROM_TODOITEM = function () {
@@ -77,12 +78,12 @@ const SELECT_ALL_FROM_TODOITEM = function () {
 
 // Get all TodoItem for a user
 const SELECT_ALL_FROM_TODOITEM_WHERE_APPUSER_ID_EQUALS = function () {
-	return `SELECT id,  FROM ${TodoItem.TODOITEM_TABLE_NAME} WHERE appuserid = $1;`;
+	return `SELECT * FROM ${TodoItem.TODOITEM_TABLE_NAME} WHERE appuserid = $1 ORDER BY datecreated DESC;`;
 };
 
 // Get all TodoItems for a user, exclude the reference column (appuserid)
 const SELECT_All_EXCEPT_APPUSER_ID_FROM_TODOITEM_WHERE_APPUSER_ID_EQUALS = function () {
-	return `SELECT id, title, description, complete, datecreated  FROM ${TodoItem.TODOITEM_TABLE_NAME} WHERE appuserid = $1;`;
+	return `SELECT id, title, description, complete, datecreated  FROM ${TodoItem.TODOITEM_TABLE_NAME} WHERE appuserid = $1 ORDER BY datecreated DESC;`;
 };
 
 const SELECT_COUNT_FROM_TODOITEM = function () {
@@ -123,6 +124,36 @@ TodoItem.setDescriptionLengthBounds = function (min, max) {
 	TodoItem.TODOITEM_DESCRIPTION_MIN_LENGTH = min;
 	TodoItem.TODOITEM_DESCRIPTION_MAX_LENGTH = max;
 }
+
+
+TodoItem.isValidId = function (id) {
+	return Number.isInteger(id) && id > 0;
+}
+TodoItem.invalidIdError = new Error('id must be an integer greater than 0');
+
+TodoItem.isValidAppUserId = function (appuserid) {
+	return Number.isInteger(appuserid) && appuserid > 0;
+}
+TodoItem.invalidAppUserIdError = new Error('id must be an integer greater than 0');
+
+TodoItem.isValidTitle = function (title) {
+	return typeof (title) == 'string'
+		&& title.length >= TodoItem.TODOITEM_TITLE_MIN_LENGTH
+		&& title.length <= TodoItem.TODOITEM_TITLE_MAX_LENGTH;
+}
+TodoItem.invalidTitleError = new Error(`title must be a non-empty string with a length of at least ${TodoItem.TODOITEM_TITLE_MIN_LENGTH} and no more than ${TodoItem.TODOITEM_TITLE_MAX_LENGTH}`);
+
+TodoItem.isValidDescription = function (description) {
+	return typeof (description) == 'string'
+		&& description.length >= TodoItem.TODOITEM_DESCRIPTION_MIN_LENGTH
+		&& description.length <= TodoItem.TODOITEM_DESCRIPTION_MAX_LENGTH;
+}
+TodoItem.invalidDescriptionError = new Error(`description must be a non-empty string with a length of at least ${TodoItem.TODOITEM_DESCRIPTION_MIN_LENGTH} and no more than ${TodoItem.TODOITEM_DESCRIPTION_MAX_LENGTH}`);
+
+TodoItem.isValidComplete = function (complete) {
+	return typeof (complete) == 'boolean';
+}
+TodoItem.invalidCompleteError = new Error(`complete must be a boolean (true/false)`);
 
 
 TodoItem.existsTable = function (cb) {
@@ -184,12 +215,13 @@ TodoItem.all = function (cb) {
 };
 
 
-TodoItem.allForUser = function (appuserid, cb) {
+TodoItem.allForUser = function (appuserid, cb, include_appuserid = false) {
 	if (TodoItem.pool == null) {
 		cb(new Error('pg pool must not be null'), getEmptyDBResponse());
 		return;
 	}
-	TodoItem.pool.query(SELECT_All_EXCEPT_APPUSER_ID_FROM_TODOITEM_WHERE_APPUSER_ID_EQUALS(), [appuserid], (err, res) => {
+	let sql = include_appuserid ? SELECT_ALL_FROM_TODOITEM_WHERE_APPUSER_ID_EQUALS() : SELECT_All_EXCEPT_APPUSER_ID_FROM_TODOITEM_WHERE_APPUSER_ID_EQUALS();
+	TodoItem.pool.query(sql, [appuserid], (err, res) => {
 		cb(err, res);
 	});
 };
@@ -216,31 +248,26 @@ TodoItem.add = function (appuserid, title, description, complete, cb) {
 		return;
 	}
 
-	if (!Number.isInteger(appuserid) || appuserid < 1) {
-		cb(new Error('appuserid must be an integer greater than 0'), getEmptyDBResponse());
+	if (!TodoItem.isValidAppUserId(appuserid)) {
+		cb(TodoItem.invalidAppUserIdError, getEmptyDBResponse());
 		return;
 	}
 
-	if (typeof (title) != 'string'
-		|| title.length < TodoItem.TODOITEM_TITLE_MIN_LENGTH
-		|| title.length > TodoItem.TODOITEM_TITLE_MAX_LENGTH
-	) {
-		cb(new Error(`title must be a non-empty string with a length of at least ${TodoItem.TODOITEM_TITLE_MIN_LENGTH} and no more than ${TodoItem.TODOITEM_TITLE_MAX_LENGTH}`), getEmptyDBResponse());
+	if (!TodoItem.isValidTitle(title)) {
+		cb(TodoItem.invalidTitleError, getEmptyDBResponse());
 		return;
 	}
 
-	if (typeof (description) != 'string'
-		|| description.length < TodoItem.TODOITEM_DESCRIPTION_MIN_LENGTH
-		|| description.length > TodoItem.TODOITEM_DESCRIPTION_MAX_LENGTH
-	) {
-		cb(new Error(`description must be string with a length of at least ${TodoItem.TODOITEM_DESCRIPTION_MIN_LENGTH} and no more than ${TodoItem.TODOITEM_DESCRIPTION_MAX_LENGTH}`), getEmptyDBResponse());
+	if (!TodoItem.isValidDescription(description)) {
+		cb(TodoItem.invalidDescriptionError, getEmptyDBResponse());
 		return;
 	}
 
-	if (typeof (complete) != 'boolean') {
-		cb(new Error(`complete must be a boolean (true/false)`), getEmptyDBResponse());
+	if (!TodoItem.isValidComplete(complete)) {
+		cb(TodoItem.invalidCompleteError, getEmptyDBResponse());
 		return;
 	}
+
 
 	TodoItem.pool.query(INSERT_INTO_TODOITEM(), [appuserid, title, description, complete], (err, res) => {
 		cb(err, res);
@@ -248,39 +275,38 @@ TodoItem.add = function (appuserid, title, description, complete, cb) {
 
 };
 
-TodoItem.update = function (id, title, description, complete, cb) {
+TodoItem.update = function (id, appuserid, title, description, complete, cb) {
 	if (TodoItem.pool == null) {
 		cb(new Error('pg pool must not be null'), getEmptyDBResponse());
 		return;
 	}
 
-	if (!Number.isInteger(id) || id < 1) {
-		cb(new Error('id must be an integer greater than 0'), getEmptyDBResponse());
+	if (!TodoItem.isValidId(id)) {
+		cb(TodoItem.invalidIdError, getEmptyDBResponse());
 		return;
 	}
 
-	if (typeof (title) != 'string'
-		|| title.length < TodoItem.TODOITEM_TITLE_MIN_LENGTH
-		|| title.length > TodoItem.TODOITEM_TITLE_MAX_LENGTH
-	) {
-		cb(new Error(`title must be a non-empty string with a length of at least ${TodoItem.TODOITEM_TITLE_MIN_LENGTH} and no more than ${TodoItem.TODOITEM_TITLE_MAX_LENGTH}`), getEmptyDBResponse());
+	if (!TodoItem.isValidAppUserId(appuserid)) {
+		cb(TodoItem.invalidAppUserIdError, getEmptyDBResponse());
 		return;
 	}
 
-	if (typeof (description) != 'string'
-		|| description.length < TodoItem.TODOITEM_DESCRIPTION_MIN_LENGTH
-		|| description.length > TodoItem.TODOITEM_DESCRIPTION_MAX_LENGTH
-	) {
-		cb(new Error(`description must be string with a length of at least ${TodoItem.TODOITEM_DESCRIPTION_MIN_LENGTH} and no more than ${TodoItem.TODOITEM_DESCRIPTION_MAX_LENGTH}`), getEmptyDBResponse());
+	if (!TodoItem.isValidTitle(title)) {
+		cb(TodoItem.invalidTitleError, getEmptyDBResponse());
 		return;
 	}
 
-	if (typeof (complete) != 'boolean') {
-		cb(new Error(`complete must be a boolean (true/false)`), getEmptyDBResponse());
+	if (!TodoItem.isValidDescription(description)) {
+		cb(TodoItem.invalidDescriptionError, getEmptyDBResponse());
 		return;
 	}
 
-	TodoItem.pool.query(UPDATE_TODOITEM_WHERE_ID_EQUALS(), [title, description, complete, id], (err, res) => {
+	if (!TodoItem.isValidComplete(complete)) {
+		cb(TodoItem.invalidCompleteError, getEmptyDBResponse());
+		return;
+	}
+
+	TodoItem.pool.query(UPDATE_TODOITEM_WHERE_ID_EQUALS_AND_APPUSERID_EQUALS(), [title, description, complete, id, appuserid], (err, res) => {
 		cb(err, res);
 	});
 

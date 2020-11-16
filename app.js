@@ -6,7 +6,8 @@ const host = 'http://localhost:8080/';
 const ngHost = 'http://localhost:4200/';
 
 // Postgres pg pool
-const { pool, AppUser } = require('./db/dbconnect');
+const { pool, AppUser, TodoItem } = require('./db/dbconnect');
+
 
 
 // test
@@ -79,13 +80,25 @@ const ajaxOnlyMiddleWare = (req, res, next) => {
 	}
 }
 
+// import routes
+const todoItemRouter = require('./routes/todoitem');
 
 
+
+
+
+// configure universal middleware
 app.use((req, res, next) => {
 	res.set('Access-Control-Allow-Origin', host);
 	res.set('Access-Control-Allow-Headers', 'Content-Type, csrf-token');
 	return next();
 });
+
+
+
+// Configure routes
+
+app.use('/api/todo', ajaxOnlyMiddleWare, authRestrictMiddleWare, todoItemRouter);
 
 app.get('/api/tododb', (req, res) => {
 	// This is test api to test if the db is running and the backend server is connected to it.
@@ -294,6 +307,7 @@ app.get('/api/', ajaxOnlyMiddleWare, (req, res) => {
 
 
 
+
 // CHECK AUTH / Check if a user has an authenticated session
 app.get('/todo', authRestrictMiddleWare, createProxyMiddleware({
 	target: ngHost, router: {
@@ -325,7 +339,9 @@ app.get('/logout', (req, res) => {
 			return;
 		}
 	})
-})
+});
+
+
 
 app.get('/', (req, res) => {
 	res.status(404).send('404');

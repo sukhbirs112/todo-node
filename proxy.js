@@ -9,20 +9,24 @@ If the user is authenticated, then they will be redirect to the app homepage whe
 const express = require('express');
 
 const { createProxyMiddleware } = require('http-proxy-middleware');
-const port = 8080; 
+const port = 8080;
 
 
 const app = express();
 
 const apiHost = "http://localhost:3000/"
 
-app.use(createProxyMiddleware({ target:'http://localhost:4200/', router: {
-    '/api': apiHost,
-    '/logout': apiHost,
-    '/todo': apiHost,
-    '/login': apiHost,
-    '/signup': apiHost,
-}, changeOrigin: true }));
+app.use((req, res, next) => {
+    next();
+}, createProxyMiddleware({
+    target: 'http://localhost:4200/', router: {
+        '/api': apiHost,
+        '/logout': apiHost,
+        '/todo': apiHost,
+        '/login': apiHost,
+        '/signup': apiHost,
+    }, changeOrigin: true
+}));
 
 
 //app.use('/api', createProxyMiddleware({ target: 'http://localhost:3000', changeOrigin: true }));
