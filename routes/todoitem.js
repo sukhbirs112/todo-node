@@ -44,7 +44,7 @@ router.post('/add', (req, res) => {
 
     TodoItem.add(appuserid, title, description, complete, (err, dbres) => {
         if (err) {
-            res.status.json({
+            res.status(200).json({
                 success: false,
                 msg: 'Failed to add TodoItem'
             });
@@ -52,7 +52,7 @@ router.post('/add', (req, res) => {
         }
         else {
             if (dbres.rowCount != 1 || !dbres.rows[0].id) {
-                res.status.json({
+                res.status(200).json({
                     success: false,
                     msg: 'Failed to add TodoItem'
                 });
@@ -83,21 +83,64 @@ router.post('/update', (req, res) => {
 
     TodoItem.update(id, appuserid, title, description, complete, (err, dbres) => {
         if (err) {
-            res.status.json({
+            res.status(200).json({
                 success: false,
                 msg: 'Failed to update TodoItem'
             });
             return;
         }
         else {
-            res.status(200).json({
-                success: true,
-                msg: 'TodoItem successfully updated',
-                rows: dbres.rows
-            });
-            return;
+            if (dbres.rowCount != 1 || !dbres.rows[0].id) {
+                res.status(200).json({
+                    success: false,
+                    msg: 'Failed to update TodoItem'
+                });
+                return;
+            }
+            else {
+                res.status(200).json({
+                    success: true,
+                    msg: 'TodoItem successfully updated',
+                });
+                return;
+            }
         }
     });
 });
+
+
+router.post('/delete', (req, res) => {
+
+    let appuserid = req.session.user.id;
+    // id of todo item
+    let id = req.body.id;
+
+    TodoItem.delete(id, appuserid, (err, dbres) => {
+        if (err) {
+            res.status(200).json({
+                success: false,
+                msg: 'Failed to delete TodoItem'
+            });
+            return;
+        }
+        else {
+            if (dbres.rowCount != 1 || !dbres.rows[0].id) {
+                res.status(200).json({
+                    success: false,
+                    msg: 'Failed to delete TodoItem'
+                });
+                return;
+            }
+            else {
+                res.status(200).json({
+                    success: true,
+                    msg: 'TodoItem successfully updated',
+                });
+                return;
+            }
+        }
+    });
+});
+
 
 module.exports = router;

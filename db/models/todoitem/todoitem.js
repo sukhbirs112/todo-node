@@ -67,9 +67,14 @@ const INSERT_INTO_TODOITEM = function () {
 		RETURNING id, datecreated;`;
 };
 
+// Delete TodoItem sql
+const DELETE_FROM_TODOITEM = function() {
+	return `DELETE FROM ${TodoItem.TODOITEM_TABLE_NAME} WHERE id = $1 AND appuserid = $2 RETURNING *;`;
+};
+
 // Update TodoItem sql
 const UPDATE_TODOITEM_WHERE_ID_EQUALS_AND_APPUSERID_EQUALS = function () {
-	return `UPDATE ${TodoItem.TODOITEM_TABLE_NAME} SET title = $1, description = $2, complete = $3 WHERE id = $4 AND appuserid = $5;`;
+	return `UPDATE ${TodoItem.TODOITEM_TABLE_NAME} SET title = $1, description = $2, complete = $3 WHERE id = $4 AND appuserid = $5 RETURNING *;`;
 }
 
 const SELECT_ALL_FROM_TODOITEM = function () {
@@ -312,6 +317,27 @@ TodoItem.update = function (id, appuserid, title, description, complete, cb) {
 
 };
 
+TodoItem.delete = function (id, appuserid, cb) {
+	if (TodoItem.pool == null) {
+		cb(new Error('pg pool must not be null'), getEmptyDBResponse());
+		return;
+	}
+
+	if (!TodoItem.isValidId(id)) {
+		cb(TodoItem.invalidIdError, getEmptyDBResponse());
+		return;
+	}
+
+	if (!TodoItem.isValidAppUserId(appuserid)) {
+		cb(TodoItem.invalidAppUserIdError, getEmptyDBResponse());
+		return;
+	}
+
+	TodoItem.pool.query(DELETE_FROM_TODOITEM(), [id, appuserid], (err, res) => {
+		cb(err, res);
+	});
+
+};
 
 
 
