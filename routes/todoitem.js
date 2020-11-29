@@ -35,7 +35,6 @@ router.get('/get', (req, res) => {
 });
 
 router.post('/add', (req, res) => {
-    console.log('post /api/todo/add');
     let appuserid = req.session.user.id;
     let title = req.body.title;
     let description = req.body.description;

@@ -241,11 +241,6 @@ app.post('/api/signup', ajaxOnlyMiddleWare, csrfProtection, (req, res) => {
 	var username = req.body.username;
 	var password = req.body.password;
 
-	// Testing if username and password from request are correct.
-	/* 	console.log(`${username} ${password}`);
-		res.status(200).json({ username: username, password: password });
-		return;  */
-
 	// frequently used error message(s)
 	const msg = `There was an issue creating your account. You may try again. If this message repeats, then please contact support.`;
 
